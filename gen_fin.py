@@ -561,5 +561,4 @@ if len(font):
         if (i == 0) or (i == batch_size - 1):
             continue
         fs = FluidSynth(font)
-        fs.midi_to_audio(sample, os.path.join(output_dir, f'{i}.wav'))
-
+        fs.midi_to_audio(output_dir + sample, os.path.join(output_dir, f'{i}.wav'))
