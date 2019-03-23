@@ -272,12 +272,6 @@ train = {
     'teacher_forcing_ratio': 1.0
 }
 
-#-------------------------------------------------------------------
-# ------------------------------------------------------------------  
-## Model
-#--------------------------------------------------------------------
-#--------------------------------------------------------------------
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -423,7 +417,7 @@ def getopt():
     parser.add_option('-l',
                       dest='max_len',
                       type='int',
-                      default=0)
+                      default=1100)
     
     parser.add_option('-f',
                       dest='font_path',
@@ -506,3 +500,4 @@ if len(font):
             continue
         fs = FluidSynth(font)
         fs.midi_to_audio(output_dir + sample, os.path.join(output_dir, f'{i}.wav'))
+
