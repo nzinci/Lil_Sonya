@@ -2,9 +2,9 @@
 
 Для генерации музыки потребуются следующие библиотеки для установки:
 
-    torch       sys             copy                pretty_midi         fluidsynth
-    numpy       time            itertools           progress.bar
-    os          optprase        collections         midi2audio
+    torch       pretty_midi         fluidsynth
+    numpy       progress.bar
+    optprase    midi2audio
 
 Запускается со следующими параметрами:
 
