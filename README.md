@@ -19,7 +19,7 @@
 
 Пример такого запуска:
 
-    python3 gen_f.py -s final_2.sess -l 1000 -c ./test_train/beethoven.data -o ./gen_mus -b 8
+    python3 gen_f.py -s final_2.sess -l 1000 -c ./test_train/beethoven.data -o ./gen_mus -b 8 -f font.sf2
 
 
 Для воспроизведения музыки настоятельно рекомендуется плеер timidity++, так как 
