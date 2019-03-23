@@ -469,8 +469,7 @@ def getopt():
     parser.add_option('-s', '--session',
                       dest='sess_path',
                       type='string',
-                      default='save/train.sess',
-                      help='session file containing the trained model')
+                      default='save/train.sess')
 
     parser.add_option('-o', '--output-dir',
                       dest='output_dir',
