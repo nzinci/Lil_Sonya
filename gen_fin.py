@@ -503,11 +503,28 @@ font = opt.font_path
 assert os.path.isfile(sess_path), f'"{sess_path}" is not a file'
 
 if control is not None:
-    if os.path.isfile(control) or os.path.isdir(control):
+    if os.path.isfile(control):
         _, compressed_controls = torch.load(control, map_location='cpu')
         controls = ControlSeq.recover_compressed_array(compressed_controls)
         controls = torch.tensor(controls, dtype=torch.float32)
         controls = controls.unsqueeze(1).repeat(1, batch_size, 1).to(device)
+    else:
+        pitch_histogram, note_density = control.split(';')
+        pitch_histogram = list(filter(len, pitch_histogram.split(',')))
+        if len(pitch_histogram) == 0:
+            pitch_histogram = np.ones(12) / 12
+        else:
+            pitch_histogram = np.array(list(map(float, pitch_histogram)))
+            assert pitch_histogram.size == 12
+            assert np.all(pitch_histogram >= 0)
+            pitch_histogram = pitch_histogram / pitch_histogram.sum() \
+                              if pitch_histogram.sum() else np.ones(12) / 12
+        note_density = int(note_density)
+        assert note_density in range(len(ControlSeq.note_density_bins))
+        control = Control(pitch_histogram, note_density)
+        controls = torch.tensor(control.to_array(), dtype=torch.float32)
+        controls = controls.repeat(1, batch_size, 1).to(device)
+        control = repr(control)
 
 else:
     controls = None
@@ -531,12 +548,12 @@ outputs = outputs.cpu().numpy().T # [batch, steps]
 os.makedirs(output_dir, exist_ok=True)
 files = []
 for i, output in enumerate(outputs):
-    if (i == 0) or (i == batch_size - 1):
+    if (i != 0) or (i != batch_size - 1):
         name = f'{i}.mid'
         path = os.path.join(output_dir, name)
         files.append(name)
         n_notes = event_indeces_to_midi_file(output, path)
-        print(f'===> {path} ({n_notes} notes)')
+
 
 if len(font):
     from midi2audio import FluidSynth
@@ -545,3 +562,4 @@ if len(font):
             continue
         fs = FluidSynth(font)
         fs.midi_to_audio(sample, os.path.join(output_dir, f'{i}.wav'))
+
