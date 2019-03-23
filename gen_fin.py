@@ -13,18 +13,11 @@ import optparse
 import copy, itertools, collections
 from pretty_midi import PrettyMIDI, Note, Instrument
 
-#==================================================================================
-# Parameters
-#==================================================================================
-
-# Note_Seqce -------------------------------------------------------------------------
-
 STATE_RESOLUTION = 220
 STATE_TEMP = 120
 STATE_VELOCITY = 52
 STATE_PITCH_RANGE = range(21, 109)
 STATE_VELOCITY_RANGE = range(21, 109)
-# Event_Seqce ------------------------------------------------------------------------
 
 BEAT_LENGTH = 60 / STATE_TEMP
 STATE_TIME_SHIFT_BINS = 1.15 ** np.arange(32) / 65
@@ -32,15 +25,10 @@ STATE_VELOCITY_STEPS = 32
 STATE_NOTE_LENGTH = BEAT_LENGTH * 2
 MIN_NOTE_LENGTH = BEAT_LENGTH / 2
 
-# ControlSeq ----------------------------------------------------------------------
 
 STATE_WINDOW_SIZE = BEAT_LENGTH * 4
 STATE_NOTE_DENSITY_BINS = np.arange(12) * 3 + 1
 
-
-#==================================================================================
-# Notes
-#==================================================================================
 
 class Note_Seqce:
     def __init__(self, notes=[]):
@@ -48,35 +36,27 @@ class Note_Seqce:
         if notes:
             for note in notes:
                 notes = filter(lambda note: note.end >= note.start, notes)
-            self.add_notes(list(notes))
+            self.push_notes(list(notes))
     
     def copy(self):
         return copy.deepcopy(self)
 
-    def conv_to_mid(self):
+    def convert2midi(self):
         midi = PrettyMIDI(resolution=STATE_RESOLUTION, initial_tempo=STATE_TEMP)
         inst = Instrument(1, False, 'Note_Seqce')
         inst.notes = copy.deepcopy(self.notes)
         midi.instruments.append(inst)
         return midi
 
-    def conv_to_mid_file(self, path, *kargs, **kwargs):
-        self.conv_to_mid(*kargs, **kwargs).write(path)
+    def convert2midi_file(self, path, *kargs, **kwargs):
+        self.convert2midi(*kargs, **kwargs).write(path)
 
 
-    def add_notes(self, notes):
+    def push_notes(self, notes):
         self.notes += notes
         self.notes.sort(key=lambda note: note.start)
 
 
-
-    
-    
-
-
-#==================================================================================
-# Events
-#==================================================================================
 
 class Event:
 
@@ -99,11 +79,11 @@ class Event_Seqce:
 
     
     @staticmethod
-    def from_array(event_indeces):
+    def take_from_array(event_indeces):
         time = 0
         events = []
         for event_index in event_indeces:
-            for event_type, feat_range in Event_Seqce.feat_ranges().items():
+            for event_type, feat_range in Event_Seqce.featur_ranges().items():
                 if feat_range.start <= event_index < feat_range.stop:
                     event_value = event_index - feat_range.start
                     events.append(Event(event_type, time, event_value))
@@ -115,28 +95,28 @@ class Event_Seqce:
 
     @staticmethod
     def dim():
-        return sum(Event_Seqce.feat_dims().values())
+        return sum(Event_Seqce.featur_dimen().values())
 
     @staticmethod
-    def feat_dims():
-        feat_dims = collections.OrderedDict()
-        feat_dims['note_on'] = len(Event_Seqce.pitch_range)
-        feat_dims['note_off'] = len(Event_Seqce.pitch_range)
-        feat_dims['velocity'] = Event_Seqce.velocity_steps
-        feat_dims['time_shift'] = len(Event_Seqce.time_shift_bins)
-        return feat_dims
+    def featur_dimen():
+        featur_dimen = collections.OrderedDict()
+        featur_dimen['note_on'] = len(Event_Seqce.pitch_range)
+        featur_dimen['note_off'] = len(Event_Seqce.pitch_range)
+        featur_dimen['velocity'] = Event_Seqce.velocity_steps
+        featur_dimen['time_shift'] = len(Event_Seqce.time_shift_bins)
+        return featur_dimen
 
     @staticmethod
-    def feat_ranges():
+    def featur_ranges():
         offset = 0
-        feat_ranges = collections.OrderedDict()
-        for feat_name, feat_dim in Event_Seqce.feat_dims().items():
-            feat_ranges[feat_name] = range(offset, offset + feat_dim)
+        featur_ranges = collections.OrderedDict()
+        for feat_name, feat_dim in Event_Seqce.featur_dimen().items():
+            featur_ranges[feat_name] = range(offset, offset + feat_dim)
             offset += feat_dim
-        return feat_ranges
+        return featur_ranges
 
     @staticmethod
-    def get_velocity_bins():
+    def getting_veloc_basket():
         n = Event_Seqce.velocity_range.stop - Event_Seqce.velocity_range.start
         return np.arange(
                 Event_Seqce.velocity_range.start,
@@ -151,12 +131,12 @@ class Event_Seqce:
             if event.type == 'time_shift':
                 time += Event_Seqce.time_shift_bins[event.value]
     
-    def to_note_seq(self):
+    def conv2note_seq(self):
         time = 0
         notes = []
         
         velocity = STATE_VELOCITY
-        velocity_bins = Event_Seqce.get_velocity_bins()
+        velocity_bins = Event_Seqce.getting_veloc_basket()
 
         last_notes = {}
 
@@ -190,17 +170,11 @@ class Event_Seqce:
 
         return Note_Seqce(notes)
 
-    def to_array(self):
-        feat_idxs = Event_Seqce.feat_ranges()
+    def conv2array(self):
+        feat_idxs = Event_Seqce.featur_ranges()
         idxs = [feat_idxs[event.type][event.value] for event in self.events]
         dtype = np.uint8 if Event_Seqce.dim() <= 256 else np.uint16
         return np.array(idxs, dtype=dtype)
-
-
-
-#==================================================================================
-# Controls
-#==================================================================================
 
 class Control:
 
@@ -212,9 +186,9 @@ class Control:
         return 'Control(pitch_histogram={}, note_density={})'.format(
                 self.pitch_histogram, self.note_density)
     
-    def to_array(self):
-        feat_dims = ControlSeq.feat_dims()
-        ndens = np.zeros([feat_dims['note_density']])
+    def conv2array(self):
+        featur_dimen = ControlSeq.featur_dimen()
+        ndens = np.zeros([featur_dimen['note_density']])
         ndens[self.note_density] = 1. # [dens_dim]
         phist = np.array(self.pitch_histogram) # [hist_dim]
         return np.concatenate([ndens, phist], 0) # [dens_dim + hist_dim]
@@ -227,10 +201,10 @@ class ControlSeq:
 
     @staticmethod
     def dim():
-        return sum(ControlSeq.feat_dims().values())
+        return sum(ControlSeq.featur_dimen().values())
 
     @staticmethod
-    def feat_dims():
+    def featur_dimen():
         note_density_dim = len(ControlSeq.note_density_bins)
         return collections.OrderedDict([
             ('pitch_histogram', 12),
@@ -238,18 +212,18 @@ class ControlSeq:
         ])
 
     @staticmethod
-    def feat_ranges():
+    def featur_ranges():
         offset = 0
-        feat_ranges = collections.OrderedDict()
-        for feat_name, feat_dim in ControlSeq.feat_dims().items():
-            feat_ranges[feat_name] = range(offset, offset + feat_dim)
+        featur_ranges = collections.OrderedDict()
+        for feat_name, feat_dim in ControlSeq.featur_dimen().items():
+            featur_ranges[feat_name] = range(offset, offset + feat_dim)
             offset += feat_dim
-        return feat_ranges
+        return featur_ranges
     
     @staticmethod
     def recover_compressed_array(array):
-        feat_dims = ControlSeq.feat_dims()
-        ndens = np.zeros([array.shape[0], feat_dims['note_density']])
+        featur_dimen = ControlSeq.featur_dimen()
+        ndens = np.zeros([array.shape[0], featur_dimen['note_density']])
         ndens[np.arange(array.shape[0]), array[:, 0]] = 1. # [steps, dens_dim]
         phist = array[:, 1:].astype(np.float64) / 255 # [steps, hist_dim]
         return np.concatenate([ndens, phist], 1) # [steps, dens_dim + hist_dim]
@@ -258,45 +232,24 @@ class ControlSeq:
         for control in controls:
             self.controls = copy.deepcopy(controls)
 
-#-------------------------------------------------------------------
-# ------------------------------------------------------------------  
-##UTILS 
-#--------------------------------------------------------------------
-#--------------------------------------------------------------------
+
 import os
 import numpy as np
 
 
-def find_files_by_extensions(root, exts=[]):
-    def _has_ext(name):
-        if not exts:
-            return True
-        name = name.lower()
-        for ext in exts:
-            if name.endswith(ext):
-                return True
-        return False
-    for path, _, files in os.walk(root):
-        for name in files:
-            if _has_ext(name):
-                yield os.path.join(path, name)
-
-def event_indeces_to_midi_file(event_indeces, midi_file_name, velocity_scale=0.8):
-    event_seq = Event_Seqce.from_array(event_indeces)
-    note_seq = event_seq.to_note_seq()
+def event_indec2midi_file(event_indeces, midi_file_name, velocity_scale=0.8):
+    event_seq = Event_Seqce.take_from_array(event_indeces)
+    note_seq = event_seq.conv2note_seq()
     for note in note_seq.notes:
         note.velocity = int((note.velocity - 64) * velocity_scale + 64)
-    note_seq.conv_to_mid_file(midi_file_name)
+    note_seq.convert2midi_file(midi_file_name)
     return len(note_seq.notes)
 
 
 
 
-#-------------------------------------------------------------------
-# ------------------------------------------------------------------  
+
 ## Config
-#--------------------------------------------------------------------
-#--------------------------------------------------------------------
 
 import torch
 device = torch.device('cpu')
@@ -356,9 +309,9 @@ class Model_RNN(nn.Module):
         self.output_fc = nn.Linear(hidden_dim * gru_layers, self.output_dim)
         self.output_fc_activation = nn.Softmax(dim=-1)
 
-        self._initialize_weights()
+        self._init_weights()
     
-    def _initialize_weights(self):
+    def _init_weights(self):
         nn.init.xavier_normal_(self.event_embedding.weight)
         nn.init.xavier_normal_(self.inithid_fc.weight)
         self.inithid_fc.bias.data.fill_(0.)
@@ -366,7 +319,7 @@ class Model_RNN(nn.Module):
         nn.init.xavier_normal_(self.output_fc.weight)
         self.output_fc.bias.data.fill_(0.)
 
-    def _sample_event(self, output, greedy=True, temperature=1.0):
+    def _sample_even(self, output, greedy=True, temperature=1.0):
         if greedy:
             return output.argmax(-1)
         else:
@@ -374,7 +327,7 @@ class Model_RNN(nn.Module):
             probs = self.output_fc_activation(output)
             return Categorical(probs).sample()
 
-    def forward(self, event, control=None, hidden=None):
+    def forw(self, event, control=None, hidden=None):
         batch_size = event.shape[1]
         event = self.event_embedding(event)
 
@@ -394,22 +347,22 @@ class Model_RNN(nn.Module):
         output = self.output_fc(output)
         return output, hidden
     
-    def get_primary_event(self, batch_size):
+    def simple_event(self, batch_size):
         return torch.LongTensor([[self.primary_event] * batch_size]).to(device)
     
-    def init_to_hidden(self, init):
+    def initialise2hidden(self, init):
         batch_size = init.shape[0]
         out = self.inithid_fc(init)
         out = self.inithid_fc_activation(out)
         out = out.view(self.gru_layers, batch_size, self.hidden_dim)
         return out
     
-    def expand_controls(self, controls, steps):
+    def expand_contr(self, controls, steps):
         if controls.shape[0] > 1:
             return controls[:steps]
         return controls.repeat(steps, 1, 1)
     
-    def generate(self, init, steps, events=None, controls=None, greedy=1.0,
+    def gen_samples(self, init, steps, events=None, controls=None, greedy=1.0,
                  temperature=1.0, teacher_forcing_ratio=1.0):
 
         batch_size = init.shape[0]
@@ -418,11 +371,11 @@ class Model_RNN(nn.Module):
         if use_teacher_forcing:
             events = events[:steps-1]
 
-        event = self.get_primary_event(batch_size)
+        event = self.simple_event(batch_size)
         use_control = controls is not None
         if use_control:
-            controls = self.expand_controls(controls, steps)
-        hidden = self.init_to_hidden(init)
+            controls = self.expand_contr(controls, steps)
+        hidden = self.initialise2hidden(init)
 
         outputs = []
         step_iter = range(steps)
@@ -430,10 +383,10 @@ class Model_RNN(nn.Module):
 
         for step in step_iter:
             control = controls[step].unsqueeze(0) if use_control else None
-            output, hidden = self.forward(event, control, hidden)
+            output, hidden = self.forw(event, control, hidden)
 
             use_greedy = np.random.random() < greedy
-            event = self._sample_event(output, greedy=use_greedy,
+            event = self._sample_even(output, greedy=use_greedy,
                                        temperature=temperature)
 
             outputs.append(event)
@@ -443,15 +396,6 @@ class Model_RNN(nn.Module):
                     event = events[step].unsqueeze(0)
         
         return torch.cat(outputs, 0)
-
-
-#==================================================================================
-# Generate
-#==================================================================================
-
-#========================================================================
-# Settings
-#========================================================================
 
 def getopt():
     parser = optparse.OptionParser()
@@ -522,7 +466,7 @@ if control is not None:
         note_density = int(note_density)
         assert note_density in range(len(ControlSeq.note_density_bins))
         control = Control(pitch_histogram, note_density)
-        controls = torch.tensor(control.to_array(), dtype=torch.float32)
+        controls = torch.tensor(control.conv2array(), dtype=torch.float32)
         controls = controls.repeat(1, batch_size, 1).to(device)
         control = repr(control)
 
@@ -541,7 +485,7 @@ print('=' * 80)
 
 init = torch.randn(batch_size, model.init_dim).to(device)
 
-outputs = model.generate(init, max_len, controls=controls)
+outputs = model.gen_samples(init, max_len, controls=controls)
 
 outputs = outputs.cpu().numpy().T # [batch, steps]
 
@@ -552,7 +496,7 @@ for i, output in enumerate(outputs):
         name = f'{i}.mid'
         path = os.path.join(output_dir, name)
         files.append(name)
-        n_notes = event_indeces_to_midi_file(output, path)
+        n_notes = event_indec2midi_file(output, path)
 
 
 if len(font):
