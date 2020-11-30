@@ -1,7 +1,7 @@
 # Sonia
 
 
-Примеры получившихся сэмплов: [[Пример 1](https://drive.google.com/open?id=1Jcx3-BOKz3J5UWQK99JBJttyVSAyl5ej), [Пример 2](https://drive.google.com/open?id=1s_L5TCKoKTNfnPO25m6cOf2wAGBA80sR)]
+Примеры получившихся сэмплов: [[Пример 1](https://drive.google.com/file/d/1Jcx3-BOKz3J5UWQK99JBJttyVSAyl5ej/view?usp=sharing), [Пример 2](https://drive.google.com/file/d/1Jcx3-BOKz3J5UWQK99JBJttyVSAyl5ej/view?usp=sharing)]
 Для генерации музыки потребуются следующие библиотеки для установки:
 
     torch       pretty_midi         fluidsynth
